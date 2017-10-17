@@ -15,6 +15,7 @@
         android:layout_height="wrap_content"
         tools:text="Datum"
         android:gravity="center"
+        android:textColor="#555"
         />
 
     <TextView
@@ -23,7 +24,8 @@
         android:layout_weight="1"
         android:layout_height="wrap_content"
         tools:text="Zeit"
-        android:gravity="center" />
+        android:gravity="center"
+        android:textColor="#555"/>
 
     <TextView
         android:id="@+id/value"
@@ -31,6 +33,7 @@
         android:layout_weight="1"
         android:layout_height="wrap_content"
         tools:text="Zählerstand"
-        android:gravity="center" />
+        android:gravity="center"
+        android:textColor="#555"/>
 
 </LinearLayout>

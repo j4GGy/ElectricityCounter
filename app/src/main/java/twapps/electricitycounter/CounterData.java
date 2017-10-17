@@ -81,11 +81,23 @@ public class CounterData {
             data = new ArrayList<>();
         }
 
+        for(int i=0; i<data.size(); i++){
+            if(data.get(i).timestamp > item.timestamp) {
+                data.add(i, item);
+                return;
+            }
+        }
         data.add(item);
     }
 
     public Item get(int index) {
         return (data == null) ? null : data.get(index);
+    }
+
+    public void remove(int index) {
+        if(data != null) {
+            data.remove(index);
+        }
     }
 
     public void loadDataFromFile(File fileIn) {

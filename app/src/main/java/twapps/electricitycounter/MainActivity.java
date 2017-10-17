@@ -1,9 +1,11 @@
 package twapps.electricitycounter;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
@@ -57,14 +59,17 @@ public class MainActivity extends AppCompatActivity {
             public void onPositiveResult(double value, Date date) {
                 counterData.add(new CounterData.Item(date.getTime(), value));
                 counterData.saveDataToFile(storageFile);
-                ((CounterDataAdapter) ((ListView) findViewById(R.id.listView)).getAdapter()).notifyDataSetChanged();
+                updateList();
             }
 
             @Override
             public void onNegativeResult() {}
         });
         dialog.show(getFragmentManager(), "tag");
+    }
 
+    private void updateList() {
+        ((CounterDataAdapter) ((ListView) findViewById(R.id.listView)).getAdapter()).notifyDataSetChanged();
     }
 
     private class CounterDataAdapter extends BaseAdapter {
@@ -90,14 +95,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
+        public View getView(final int position, View convertView, ViewGroup parent) {
             if(convertView == null) {
                 convertView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.item_list, parent, false);
             }
 
-            CounterData.Item item = getItem(position);
+            final CounterData.Item item = getItem(position);
 
-            Date date = new Date(item.timestamp);
+            final Date date = new Date(item.timestamp);
 
             TextView tv = (TextView) convertView.findViewById(R.id.date);
             tv.setText(dateFormat.format(date));
@@ -106,7 +111,32 @@ public class MainActivity extends AppCompatActivity {
             tv = (TextView) convertView.findViewById(R.id.value);
             tv.setText(String.format(Locale.getDefault(), "%.2f", item.value));
 
-            //TODO: tap on entry to remove
+            convertView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+
+                    builder.setTitle("Löschen?")
+                            .setMessage(String.format(Locale.getDefault(), "Wollen Sie wirklich diesen Eintrag löschen?\n\nZeitpunkt: %s %s\nZählerstand: %.2f",
+                                   dateFormat.format(date), timeFormat.format(date), item.value))
+                            .setNegativeButton("Nein", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                }
+                            })
+                            .setPositiveButton("Ja", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    counterData.remove(position);
+                                    counterData.saveDataToFile(storageFile);
+                                    updateList();
+                                    dialog.dismiss();
+                                }
+                            });
+                    builder.create().show();
+                }
+            });
 
             return convertView;
         }
