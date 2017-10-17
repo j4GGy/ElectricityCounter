@@ -63,13 +63,29 @@ public class CounterData {
     }
 
     private File dataFile;
-    List<Item> data;
+    private List<Item> data;
 
     public CounterData(File storage) {
         data = new ArrayList<>();
         dataFile = storage;
 
         loadDataFromFile(dataFile);
+    }
+
+    public int size() {
+        return (data == null) ? 0 : data.size();
+    }
+
+    public void add(Item item) {
+        if(data == null) {
+            data = new ArrayList<>();
+        }
+
+        data.add(item);
+    }
+
+    public Item get(int index) {
+        return (data == null) ? null : data.get(index);
     }
 
     public void loadDataFromFile(File fileIn) {
@@ -95,6 +111,7 @@ public class CounterData {
     }
 
     public void saveDataToFile(File fileOut) {
+        Log.v(TAG, "saveDateToFile()");
         BufferedWriter bufferedWriter;
 
         if(!fileOut.exists()) {
