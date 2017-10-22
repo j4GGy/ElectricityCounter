@@ -1,18 +1,17 @@
 package twapps.electricitycounter;
 
-import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.Point;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Surface;
 import android.view.View;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -24,14 +23,18 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = MainActivity.class.getSimpleName();
+
     //TODO: export
     //TODO: widget + reminder
 
     private CounterData counterData;
     private File storageFile;
+    private boolean isPortraitDisplay = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.v("activity", "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -50,6 +53,17 @@ public class MainActivity extends AppCompatActivity {
         ListView listView = (ListView) findViewById(R.id.listView);
         CounterDataAdapter adapter = new CounterDataAdapter(counterData);
         listView.setAdapter(adapter);
+
+        WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+        Point size = new Point();
+        wm.getDefaultDisplay().getSize(size);
+        isPortraitDisplay = size.x <= size.y;
+
+        boolean portrait = isDisplayInPortraitMode();
+        Log.v(TAG, "isDisplayInPortraitMode: " + portrait);
+        findViewById(R.id.header_delta_time).setVisibility(portrait ? View.GONE : View.VISIBLE);
+        findViewById(R.id.header_delta_energy).setVisibility(portrait ? View.GONE : View.VISIBLE);
+        findViewById(R.id.header_energy_per_day).setVisibility(portrait ? View.GONE : View.VISIBLE);
     }
 
     private void addNewEntry() {
@@ -61,15 +75,22 @@ public class MainActivity extends AppCompatActivity {
                 counterData.saveDataToFile(storageFile);
                 updateList();
             }
-
             @Override
             public void onNegativeResult() {}
         });
         dialog.show(getFragmentManager(), "tag");
     }
 
+    private boolean isDisplayInPortraitMode() {
+       return isPortraitDisplay;
+    }
+
     private void updateList() {
         ((CounterDataAdapter) ((ListView) findViewById(R.id.listView)).getAdapter()).notifyDataSetChanged();
+    }
+
+    private double getHourDifference(long t1, long t2) {
+        return (t2 - t1) / 1000.0 / 3600.0;
     }
 
     private class CounterDataAdapter extends BaseAdapter {
@@ -137,6 +158,42 @@ public class MainActivity extends AppCompatActivity {
                     builder.create().show();
                 }
             });
+
+            if(isDisplayInPortraitMode()) {
+                convertView.findViewById(R.id.delta_time).setVisibility(View.GONE);
+                convertView.findViewById(R.id.delta_energy).setVisibility(View.GONE);
+                convertView.findViewById(R.id.energy_per_day).setVisibility(View.GONE);
+            } else {
+                if(position == 0) {
+                    tv = (TextView) convertView.findViewById(R.id.delta_time);
+                    tv.setVisibility(View.VISIBLE);
+                    tv.setText("-");
+
+
+                    tv = (TextView) convertView.findViewById(R.id.delta_energy);
+                    tv.setVisibility(View.VISIBLE);
+                    tv.setText("-");
+
+                    tv = (TextView) convertView.findViewById(R.id.energy_per_day);
+                    tv.setVisibility(View.VISIBLE);
+                    tv.setText("-");
+                } else {
+                    double timeDifference = getHourDifference(getItem(position - 1).timestamp, item.timestamp);
+                    double valueDifference = item.value - getItem(position - 1).value;
+
+                    tv = (TextView) convertView.findViewById(R.id.delta_time);
+                    tv.setVisibility(View.VISIBLE);
+                    tv.setText(String.format(Locale.getDefault(), "%.2f", timeDifference));
+
+                    tv = (TextView) convertView.findViewById(R.id.delta_energy);
+                    tv.setVisibility(View.VISIBLE);
+                    tv.setText(String.format(Locale.getDefault(), "%.2f", valueDifference));
+
+                    tv = (TextView) convertView.findViewById(R.id.energy_per_day);
+                    tv.setVisibility(View.VISIBLE);
+                    tv.setText(String.format(Locale.getDefault(), "%.2f", 24.0 * valueDifference / timeDifference));
+                }
+            }
 
             return convertView;
         }

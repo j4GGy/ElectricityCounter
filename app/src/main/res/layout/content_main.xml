@@ -18,7 +18,7 @@
 
         <TextView
             android:layout_width="0dp"
-            android:layout_weight="1"
+            android:layout_weight="2"
             android:layout_height="wrap_content"
             android:text="Datum"
             android:gravity="center"
@@ -26,7 +26,7 @@
 
         <TextView
             android:layout_width="0dp"
-            android:layout_weight="1"
+            android:layout_weight="2"
             android:layout_height="wrap_content"
             android:text="Zeit"
             android:gravity="center"
@@ -34,11 +34,43 @@
 
         <TextView
             android:layout_width="0dp"
-            android:layout_weight="1"
+            android:layout_weight="2"
             android:layout_height="wrap_content"
             android:text="Zählerstand"
             android:gravity="center"
             android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/header_delta_time"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="ΔT"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+        <TextView
+            android:id="@+id/header_delta_energy"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="ΔE"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
+        <TextView
+            android:id="@+id/header_energy_per_day"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="ΔE/ΔT\n(kWh/d)"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:visibility="visible"/>
 
     </LinearLayout>
 
