@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">ElectricityCounter</string>
     <string name="action_settings">Settings</string>
-    <string name="title_activity_main2">Main2Activity</string>
+    <string name="header_delta_time">ΔT</string>
+    <string name="header_delta_energy">ΔE</string>
+    <string name="header_energy_per_day">kWh/d</string>
 </resources>

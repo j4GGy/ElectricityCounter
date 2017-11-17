@@ -83,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.header_delta_time).setVisibility(portrait ? View.GONE : View.VISIBLE);
         findViewById(R.id.header_delta_energy).setVisibility(portrait ? View.GONE : View.VISIBLE);
         findViewById(R.id.header_energy_per_day).setVisibility(portrait ? View.GONE : View.VISIBLE);
+        updateExtraHeaders();
     }
 
     @Override
@@ -147,6 +148,38 @@ public class MainActivity extends AppCompatActivity {
                 }
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void updateExtraHeaders() {
+        if(!isDisplayInPortraitMode()) {
+            if(counterData.size() > 1) {
+                CounterData.Item itemOld = counterData.get(0); //oldest
+                CounterData.Item itemNew = counterData.get(counterData.size() - 1); //newest
+
+                double timeDifference = getHourDifference(itemOld.timestamp, itemNew.timestamp);
+                double valueDifference = itemNew.value - itemOld.value;
+
+                TextView tv;
+                tv = (TextView) findViewById(R.id.header_delta_time);
+                tv.setText(String.format(Locale.getDefault(), "%s\n%.2f", getApplicationContext().getString(R.string.header_delta_time), timeDifference));
+
+                tv = (TextView) findViewById(R.id.header_delta_energy);
+                tv.setText(String.format(Locale.getDefault(), "%s\n%.2f", getApplicationContext().getString(R.string.header_delta_energy), valueDifference));
+
+                tv = (TextView) findViewById(R.id.header_energy_per_day);
+                tv.setText(String.format(Locale.getDefault(), "%s\n%.2f", getApplicationContext().getString(R.string.header_energy_per_day), 24.0 * valueDifference / timeDifference));
+            } else {
+                TextView tv;
+                tv = (TextView) findViewById(R.id.header_delta_time);
+                tv.setText(R.string.header_delta_time);
+
+                tv = (TextView) findViewById(R.id.header_delta_energy);
+                tv.setText(R.string.header_delta_energy);
+
+                tv = (TextView) findViewById(R.id.header_energy_per_day);
+                tv.setText(R.string.header_energy_per_day);
+            }
+        }
     }
 
     private void addNewEntry() {
@@ -284,6 +317,12 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public long getItemId(int position) {
             return position;
+        }
+
+        @Override
+        public void notifyDataSetChanged() {
+            super.notifyDataSetChanged();
+            updateExtraHeaders();
         }
     }
 }
