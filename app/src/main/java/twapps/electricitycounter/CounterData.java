@@ -2,19 +2,15 @@ package twapps.electricitycounter;
 
 import android.util.Log;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.IllegalFormatException;
 import java.util.List;
 
 public class CounterData {
@@ -147,5 +143,24 @@ public class CounterData {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean saveDataToCSV(FileOutputStream outputStream) {
+        Log.v(TAG, "saveDataToCSV");
+        try {
+            String s = "Date"+ Item.SEPARATOR+"Value";
+            outputStream.write(s.getBytes());
+            outputStream.write(System.lineSeparator().getBytes());
+            for(Item item : data) {
+                outputStream.write(item.toString().getBytes());
+                outputStream.write(System.lineSeparator().getBytes());
+            }
+            outputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        Log.v(TAG, "Export to CSV successful");
+        return true;
     }
 }

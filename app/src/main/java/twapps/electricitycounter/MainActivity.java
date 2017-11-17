@@ -1,13 +1,24 @@
 package twapps.electricitycounter;
 
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Point;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.ParcelFileDescriptor;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,15 +26,22 @@ import android.view.WindowManager;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
+
+    private static final int REQUEST_EXPORT = 1;
 
     //TODO: export
     //TODO: widget + reminder
@@ -37,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
         Log.v("activity", "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
 
         //setup data backend
         storageFile = new File(getFilesDir(), "counter_data.csv");
@@ -66,6 +85,70 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.header_energy_per_day).setVisibility(portrait ? View.GONE : View.VISIBLE);
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = getMenuInflater();
+        menuInflater.inflate(R.menu.overflow_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_export:
+                Intent saveIntent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                saveIntent.addCategory(Intent.CATEGORY_OPENABLE);
+                saveIntent.setType("text/csv");
+                DateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.GERMANY);
+                saveIntent.putExtra(Intent.EXTRA_TITLE, "electricity_data_"+df.format(Calendar.getInstance().getTime())+".csv");
+                startActivityForResult(saveIntent, REQUEST_EXPORT);
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_EXPORT:
+                if(resultCode == RESULT_OK && data != null && data.getData() != null) {
+                    final Uri uri = data.getData();
+                    final Handler handler = new Handler();
+
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Looper.prepare();
+                            ParcelFileDescriptor pfd = null;
+                            try {
+                                pfd = getContentResolver().openFileDescriptor(uri, "w");
+                            } catch (Exception e) {
+                                Log.e(TAG, "Exception obtaining FileDescriptor from URI:");
+                                e.printStackTrace();
+                            }
+                            FileOutputStream fileOutputStream = new FileOutputStream(pfd.getFileDescriptor());
+                            if(counterData.saveDataToCSV(fileOutputStream)) {
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        Toast.makeText(getApplicationContext(), "Exported to CSV", Toast.LENGTH_LONG).show();
+                                    }
+                                });
+                            } else {
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        Toast.makeText(getApplicationContext(), "Exporting to CSV failed", Toast.LENGTH_LONG).show();
+                                    }
+                                });
+                            }
+                        }
+                    }).start();
+                }
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
     private void addNewEntry() {
         AddEntryDialog dialog = new AddEntryDialog();
         dialog.setCallback(new AddEntryDialog.ResultCallback() {
@@ -82,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isDisplayInPortraitMode() {
-       return isPortraitDisplay;
+        return isPortraitDisplay;
     }
 
     private void updateList() {
@@ -112,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public CounterData.Item getItem(int position) {
-            return this.counterData.get(position);
+            return this.counterData.get(this.counterData.size() - 1 - position);
         }
 
         @Override
@@ -139,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
 
                     builder.setTitle("Löschen?")
                             .setMessage(String.format(Locale.getDefault(), "Wollen Sie wirklich diesen Eintrag löschen?\n\nZeitpunkt: %s %s\nZählerstand: %.2f",
-                                   dateFormat.format(date), timeFormat.format(date), item.value))
+                                    dateFormat.format(date), timeFormat.format(date), item.value))
                             .setNegativeButton("Nein", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
@@ -164,7 +247,7 @@ public class MainActivity extends AppCompatActivity {
                 convertView.findViewById(R.id.delta_energy).setVisibility(View.GONE);
                 convertView.findViewById(R.id.energy_per_day).setVisibility(View.GONE);
             } else {
-                if(position == 0) {
+                if(position == this.counterData.size() - 1) {
                     tv = (TextView) convertView.findViewById(R.id.delta_time);
                     tv.setVisibility(View.VISIBLE);
                     tv.setText("-");
@@ -178,8 +261,8 @@ public class MainActivity extends AppCompatActivity {
                     tv.setVisibility(View.VISIBLE);
                     tv.setText("-");
                 } else {
-                    double timeDifference = getHourDifference(getItem(position - 1).timestamp, item.timestamp);
-                    double valueDifference = item.value - getItem(position - 1).value;
+                    double timeDifference = getHourDifference(getItem(position + 1).timestamp, item.timestamp);
+                    double valueDifference = item.value - getItem(position + 1).value;
 
                     tv = (TextView) convertView.findViewById(R.id.delta_time);
                     tv.setVisibility(View.VISIBLE);
